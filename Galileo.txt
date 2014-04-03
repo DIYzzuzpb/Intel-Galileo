@@ -1,0 +1,12 @@
+Galileo is a microcontroller board based on the Intel Quark SoC X1000 Application Processor, 
+a 32-bit Intel Pentium-class system on a chip.
+
+Digital pins 0 to 13 (and the adjacent AREF and GND pins), Analog inputs 0 to 5, the power header, 
+ICSP header, and the UART port pins (0 and 1), 
+are all in the same locations as on the Arduino Uno R3. 
+
+工作所需电压(3.3V / 5.0V);
+The core operating voltage of Galileo is 3.3V. 
+板上有一jumper(IOREF), 可通过跳线帽切换I/O的参考电压为3.3V / 5.0V;
+
+
