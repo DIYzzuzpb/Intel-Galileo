@@ -16,6 +16,8 @@ The core operating voltage of Galileo is 3.3V.
 #####A0~A5 - 6 analog inputs,    
 via an AD7298 analog-to-digital (A/D) converter, provides 12 bits of resolution 
 (i.e., 4096 different values). By default they measure from ground to 5 volts.
+#####Analogue out pins 3,5,6,9,10,11
+这六个默认为数字引脚, 但可以通过配置, 改为模拟输出引脚.
 #####I2C bus, TWI
 #####SPI   
 Defaults to 4MHz to support Arduino Uno shields. Programmable up to 25MHz.
@@ -26,6 +28,10 @@ Maximum current draw to the shield is 800 mA.
 #####IOREF   
 a selection jumper on the board is used to select between 3.3V and 5V shield operation. 
 
+
+###Arduino集成开发环境(IDE)
+只需要写出简单的Arduino程序, IDE会自动将其转换为C语言,再创给avr-gcc编译器,最后编译成微处理器能理解的语言, 这这一切都是隐藏给用户的。
+####隐藏复杂的编译过程,让用户尽可能以简单的方式去控制微处理器
 
 
 
