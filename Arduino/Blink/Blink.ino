@@ -17,7 +17,7 @@ void setup() {
 
 // the loop routine runs over and over again forever:
 void loop() {
-  switch_on_off(led, 500);
+  switch_on_off(led, 1000);
   //pwm_on_off(led, 10);        //It doesn't work because pin13 is not a PWM pin in Intel Galileo! OMG!
 }
 

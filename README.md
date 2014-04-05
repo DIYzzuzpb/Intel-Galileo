@@ -1,8 +1,15 @@
 Intel-Galileo
 =============
+#####使用Galileo的正确姿势:    
+一定要UART到电脑上( 串口连接方法见Documents/Galileo-UART.txt ), 得知Galileo的准确状态。   
+板子复位以后启动很慢, 要等好久才可以用Arduino IDE下程序, 否则下载会失败, 提示超时。
 
-##Blink/ 点亮LED灯
-###I/O基本操作
+
+
+
+##I/O基本操作
+
+###Blink/ 点亮LED灯
 ###数字电平输出
     int led = 13;            // Arduino板子的LED一般是pin13
     pinMode(led, OUTPUT);    // 配置IO引脚的方向 (INPUT, OUTPUT, INPUT_PULLUP)
@@ -20,10 +27,11 @@ Intel-Galileo
 	 //value: the duty cycle: between 0 (always off) and 255 (always on).
 
 ##DigitalReadSerial/ 串口输出
+Intel Galileo只有一个串口, 使用USB连接Galileo板子和电脑时, 板子上有转换电路。   
+否则, 使用引脚RX(0),TX(1)外接TTL/USB连接电脑。
 ###串口配置
     Serial.begin(9600);             // 配置波特率
     Serial.println(buttonState);    // 串口输出
-
 
 ##Millis/ 运行时间读取
     unsigned long time = millis(); 
@@ -41,7 +49,8 @@ Intel-Galileo
 	//第三个参数为持续时间(毫秒), 可选.未声明则直到noTune()才停止.
 	//统一时间只能有一个tone()工作.
 	
-##ASCIITable/ 输出语句
+##Serial output 串口输出
+###ASCIITable/ 输出语句
 	Serial.println("hello");
 	Serial.write(thisByte);
 	Serial.print(thisByte);
@@ -66,4 +75,61 @@ Intel-Galileo
 	Serial.print(analogRead(xpin));
 	Serial.print(analogRead(ypin));
 	Serial.print(analogRead(zpin));
+	
+	
+##以太网配置
+####ChatServer/    
+将Galileo配置成一个局域网中的聊天服务器.   
+其他电脑可以telnet到此服务器, 输出的消息会广播给所有连接此服务器的客户端。    
+使用SPI对应的引脚。
+Ethernet shield attached to pins 10, 11, 12, 13
+	
+
+	#include <SPI.h>
+	#include <Ethernet.h>
+	
+	//配置Galileo的Mac地址,IP,gateway, subnet.
+	byte mac[] = { //Galileo 的以太网端口地址, 板子上有标签98:4F:EE:00:2E:98 
+	0x98, 0x4F, 0xEE, 0x00, 0x2E, 0x98 };
+	IPAddress ip(10,42,0, 177);
+	IPAddress gateway(10,42,0, 1);
+	IPAddress subnet(255, 255, 255, 00);
+	
+	// telnet defaults to port 23
+	EthernetServer server(23);
+	
+	
+	// initialize the ethernet device
+	// 支持DHCP -> Ethernet.begin(max);
+	//            Ethernet.begin(mac, ip); 
+	Ethernet.begin(mac, ip, gateway, subnet);
+	
+	
+	  // wait for a new client:
+	  EthernetClient client = server.available();
+	  
+	  // 判断
+	  if(client)
+	  {
+	  ...
+	  }
+	  
+	  server.write(val);
+	  server.write(buf, len);
+	  
+	  
+	  //具体应用看 Arduino - Ethernet library - Server class / Client class
+	  
+
+
+###EEPROM
+Intel Galileo的EEPROM是11KB, 所以地址是从0~(11 * 1024 - 1) , 即 0~11263. 
+
+	#include <EEPROM.h>
+	
+	//the EEPROM can only hold a value from 0 to 255.
+	EEPROM.write(address,value);
+	
+	value = EEPROM.read(address);
+	
 	
