@@ -3,8 +3,16 @@ Intel-Galileo
 #####使用Galileo的正确姿势:    
 一定要UART到电脑上( 串口连接方法见Documents/Galileo-UART.txt ), 得知Galileo的准确状态。   
 板子复位以后启动很慢, 要等好久才可以用Arduino IDE下程序, 否则下载会失败, 提示超时。
+#####电源保护
+和电源相关的连线, 一定要用杜邦线帽保护好, 因为Galileo的电源引脚都在一起, VCC旁边就是GND, 裸露的杜邦线, 稍微碰下就导致短路, Galileo有严格的电源管理机制, 短路后会立刻重启.(这也是为什么要使用UART准确得到Galileo的状态的原因之一)
 
+##连接
 
+####UART TLL
+Galileo provides UART TTL (5V/3.3V) serial communication, which is available on digital pin 0 (RX) and 1 (TX).   
+ 
+#### UART RS-232
+In addition, a second UART provides RS-232 support and is connected via a 3.5mm jack. 
 
 
 ##I/O基本操作

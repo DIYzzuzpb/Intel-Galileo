@@ -8,10 +8,9 @@ are all in the same locations as on the Arduino Uno R3.
 
 工作所需电压(3.3V / 5.0V);   
 The core operating voltage of Galileo is 3.3V.    
-板上有一jumper(IOREF), 可通过跳线帽切换I/O的参考电压为3.3V / 5.0V;    
+板上有一jumper(IOREF), 可通过跳线帽切换I/O的参考电压为3.3V / 5.0V;  
 
-
-###Arduino Shield Supported Features
+##Arduino Shield Supported Features
 #####14 digital input/output pins.  
 #####A0~A5 - 6 analog inputs,    
 via an AD7298 analog-to-digital (A/D) converter, provides 12 bits of resolution 
@@ -32,6 +31,7 @@ a selection jumper on the board is used to select between 3.3V and 5V shield ope
 ###Arduino集成开发环境(IDE)
 只需要写出简单的Arduino程序, IDE会自动将其转换为C语言,再创给avr-gcc编译器,最后编译成微处理器能理解的语言, 这这一切都是隐藏给用户的。
 ####隐藏复杂的编译过程,让用户尽可能以简单的方式去控制微处理器
+
 
 
 
