@@ -112,3 +112,13 @@ Once analog port is connected, its value can be read from Sysfs:
 
 
 
+###测试
+熄灭Galileo板子上的LED灯。
+查知GPIO3控制LED灯, 
+	
+	echo -n "0" > /sys/class/gpio/gpio3/value
+	观察灯灭
+---
+
+	echo -n "1" > /sys/class/gpio/gpio3/value
+	观察灯亮	
