@@ -29,7 +29,8 @@ To make GPIO port controllable from sysfs you'll need to export it. This is done
  
 	root@clanton:~# echo -n "27" > /sys/class/gpio/export
 	
-	
+其中, 「echo -n」表示不换行输出.
+
 ###Setting GPIO Port Direction
 
 	root@clanton:~# echo -n "out" > /sys/class/gpio/gpio27/direction

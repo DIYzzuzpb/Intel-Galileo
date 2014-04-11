@@ -21,6 +21,10 @@ via an AD7298 analog-to-digital (A/D) converter, provides 12 bits of resolution
 #####SPI   
 Defaults to 4MHz to support Arduino Uno shields. Programmable up to 25MHz.
 #####UART
+
+UART0 (IO0 -> RX0, IO1 -> TX0) [Galileo: /dev/ttyS0]   
+UART1 (headphone jack)				[Galileo: /dev/ttyS1]
+
 #####VIN
 #####5V/3.3V OUTPUT PIN
 Maximum current draw to the shield is 800 mA.

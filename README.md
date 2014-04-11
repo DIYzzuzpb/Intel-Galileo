@@ -139,5 +139,64 @@ Intel Galileo的EEPROM是11KB, 所以地址是从0~(11 * 1024 - 1) , 即 0~11263
 	EEPROM.write(address,value);
 	
 	value = EEPROM.read(address);
+
+### UART0串口
+
+ [ How do I access /dev/ttyS0?](https://communities.intel.com/message/219828#219828)
+
+
+
+参考Programming_GPIO_From_Linux/的文档教程,学会linux下控制Galileo的gpio.
+
+
+ttyS0对应UART0, 对应引脚IO0,IO1. 
+  
+查看Galileo IO mapping可知,
+相关引脚在linux下为gpio40,gpio41,gpio4.    
+gpio40是0-RX的选择器控制端口, 其值为0时选择ttyS0, 为1选择gpio50.     
+gpio41是1-TX的选择器控制端偶, 0->ttyS0, 1->gpio51;
+gpio4是Level Shifter OE, 要配置其输出为1使能.
+
+导出引脚40,41,4
 	
+	echo -n 40 > /sys/class/gpio/export 
+	echo -n 41 > /sys/class/gpio/export 
+	echo -n 4 > /sys/class/gpio/export 
+配置为输出:
+
+	echo -n "out" > /sys/class/gpio/gpio40/direction  
+	echo -n "out" > /sys/class/gpio/gpio41/direction
+	echo -n "out" > /sys/class/gpio/gpio4/direction
+	
+配置输出值:
+
+	echo -n "0" > /sys/class/gpio/gpio40/value
+	echo -n "0" > /sys/class/gpio/gpio41/value 
+	
+	echo -n "1" > /sys/class/gpio/gpio40/value 
+
+引脚配置完成, 现在ttyS0与UART0的TX0,RX0相连接.
+硬件上, 使用TTL转USB模块, RX0(Galileo IO 0) -> TTL(TX),
+TX0(Galileo IO 1) -> TTL(RX), Galileo GND -> TTL(GND);
+
+USB -> 电脑.
+
+硬件配置完成!
+
+接下来, 在电脑终端中连接对应串口, 波特率默认为9600
+Mac OS X下如下:
+
+	$ screen /dev/tty.usbserial-A7027C8G 9600
+
+然后, 在Galileo的控制台中, 
+
+Galileo -> ttyS0
+
+	root@clanton:~# echo "hello, ttyS0, this is Galileo" > /dev/ttyS0 
+
+ttyS0 -> Galileo
+	
+	root@clanton:~# cat /dev/ttyS0 
+这样就变为了输入.
+然后在ttyS0端口,也就是电脑中的screen中,进行输出, 信息就会通过串口显示在Galileo中.
 	
