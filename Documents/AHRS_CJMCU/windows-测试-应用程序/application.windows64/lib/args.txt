@@ -1,0 +1,3 @@
+ -Xms64m -Xmx512m
+Nano_AHRS_test
+Nano_AHRS_test.jar,core.jar,gluegen-rt.jar,jogl.jar,opengl.jar,RXTXcomm.jar,serial.jar
