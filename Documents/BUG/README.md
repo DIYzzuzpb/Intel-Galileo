@@ -26,7 +26,20 @@ On firmware version 1.0.0 that problem goes away.
 
 https://communities.intel.com/message/219001#219001
 
+Intel提供的例程Timerone->ISRBlink有问题.
+
+	there's actually a second argument to attachInterrupt(), which is missing in the sketch.
+	It has a default value of -1, which causes the callback not to be attached due to inconsistency with a certain check within that attachInterrupt().
+	
+eg.
+
+	Timer1.initialize(100000); // the timer period is 100000 useconds, that is 0.1 sec  
+	Timer1.attachInterrupt(timerIsr, 500000); // the callback will be called on each 5th timer interrupt, i.e. every 0.5 sec  
+ 
 	
 ##Using rx tx instead of headphone jack?
 
 https://communities.intel.com/message/230742#230742
+
+Headphone jack是UART1, 对应/dev/ttyS1, 而板子上的RX,TX是UART0, 对应/dev/ttyS0.   
+所以如果想要代替, 需要在grub配置文件中修改linux console.
