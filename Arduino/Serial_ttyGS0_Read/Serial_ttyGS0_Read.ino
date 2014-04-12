@@ -1,3 +1,9 @@
+/*
+    Galileo /dev/ttyGS0 (client usb) 
+    
+*/
+
+
 void setup()
 {
   // initialize the serial communication:
@@ -10,7 +16,7 @@ void loop() {
   // check if data has been sent from the computer:
   if (Serial.available()) {
     // read the most recent byte (which will be from 0 to 255):
-    read_date = Serial.read();
+    read_data = Serial1.read();
 
     Serial.print("I got ");
     Serial.println(read_data);

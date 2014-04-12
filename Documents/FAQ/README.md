@@ -43,3 +43,34 @@ https://communities.intel.com/message/230742#230742
 
 Headphone jack是UART1, 对应/dev/ttyS1, 而板子上的RX,TX是UART0, 对应/dev/ttyS0.   
 所以如果想要代替, 需要在grub配置文件中修改linux console.
+
+##/tmp/log.txt File Too Big
+
+https://communities.intel.com/message/231768#231768
+
+	That is the sketch debug log.You could turn off logging, or find the file that has the trace statement. I would start looking for a file called mux-info.c or .cpp in the sketch libraries.
+	
+	 
+	
+	a function called "trace_info()" being called in "mux.c", on line 88. 
+	
+	
+##Start Serial Console on Galileo using Linux, w/ USB->UART FTDI cable
+
+https://communities.intel.com/message/231778#231778
+
+
+##SoftwareSerial Library
+
+https://communities.intel.com/message/231749#231749
+
+	"fatal error: SoftwareSerial.h: No such file or directory
+	
+The SoftwareSerial library is not available in the current release.
+
+##[GPIO pin goes high on reboot of Galileo board?](https://communities.intel.com/message/231619#231619)
+
+	Pins have pullups enabled at reset time.
+	
+This behavior is listed in the known issues of [the Release notes](https://communities.intel.com/docs/DOC-21837) you can take a look at it in section 1.7.9.
+

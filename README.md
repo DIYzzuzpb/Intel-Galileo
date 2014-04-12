@@ -200,4 +200,43 @@ ttyS0 -> Galileo
 	root@clanton:~# cat /dev/ttyS0 
 这样就变为了输入.
 然后在ttyS0端口,也就是电脑中的screen中,进行输出, 信息就会通过串口显示在Galileo中.
+
+
+### UART串口 - Serial
+
+/dev/ttyS0 is the first Quark UART (UART0) and it's the Digital 0 and 1 pins    
+/dev/ttyS1 is the second Quark UART (UART1) and it's the audio jack one  
+/dev/ttyGS0 is the virtual serial device created by the Linux cdc-acm driver via the Galileo USB port marked as "USB client".
+
+the Arduino mappings		
 	
+	Serial is routed to the /dev/ttyGS0   
+	Serial1 is routed to /dev/ttyS0     
+	Serial2 is not used
+
+Arduino sketch 
+
+	void setup() {  
+	}  
+	void loop() {
+	delay(5000);  
+	if(Serial) {  
+    	Serial.println("This is Serial, must be mapped to /dev/	ttyGS0, i.e. visible in Arduino IDE's Serial Monitor");  
+    	}  
+	  else {  
+    printf("Serial is not ready");  
+    }  
+    if(Serial1) {  
+    Serial1.println("This is Serial1, must be mapped to /dev/ttyS0, i.e. visible on something connected to the Digital pins 0 & 1"); 
+    } 
+    else {  
+    printf("Serial1 is not ready");  
+    }  
+    if(Serial2) {  
+    Serial2.println("This is Serial2, unused, you shouldn't see this anywhere");  
+    }  
+    else {  
+    printf("Serial2 is not ready");  
+    }  
+    }  
+
