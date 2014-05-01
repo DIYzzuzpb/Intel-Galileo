@@ -1,4 +1,8 @@
 /*
+    set Ethernet Ip = 10.42.0.21
+                 gateway(10.42.0.1);
+                 
+                 
     * Ethernet shield attached to pins 10, 11, 12, 13
 */
 

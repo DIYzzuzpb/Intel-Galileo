@@ -74,3 +74,15 @@ The SoftwareSerial library is not available in the current release.
 	
 This behavior is listed in the known issues of [the Release notes](https://communities.intel.com/docs/DOC-21837) you can take a look at it in section 1.7.9.
 
+##[SD Library compilation error](https://communities.intel.com/message/208624#208624)
+
+Arduino: 1.5.3 (Mac OS X), Board: "Intel® Galileo"
+Arduino.app/Contents/Resources/Java/hardware/arduino/x86/libraries/SD/SD.h:5:18: fatal error: string: No such file or directory
+compilation terminated.
+
+	This is a bug in the way Yocto builds the gcc toolchain for the Mac. The net effect is that C++ .h header files are not found. As a workaround, can you please try to create a symbolic link like this?
+
+Don't copy and paste, retype the line into terminal inside your Arduino For Galileo app folder. (mine is called ArduiG)	
+	
+	cd /Applications/ArduiG.app/Contents/Resources/Java
+	ln -s . hardware/tools/x86/i586-poky-linux-uclibc/usr/include/c++/4.2.1

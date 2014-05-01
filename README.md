@@ -239,4 +239,41 @@ Arduino sketch
     printf("Serial2 is not ready");  
     }  
     }  
+   
+
+##SD
+
+The library supports FAT16 and FAT32 file systems on standard SD cards and SDHC cards.    
+It uses short 8.3 names for files.     
+The communication between the microcontroller and the SD card uses SPI, which takes place on digital pins 11, 12, and 13 (on most Arduino boards) or 50, 51, and 52 (Arduino Mega). 
+Additionally, another pin must be used to select the SD card.     
+     
+
+
+##SD卡启动linux
+Booting your board from an SD card(Galileo_GettingStarted.pdf - Page8)
+
+Note: Your SD card must meet the following requirements:
+
+* SD card must be formatted as FAT or FAT32.
+* SD card size must be less than 32GB.
+    
+       
+ 
+----
+
+1. you may need to add a boot partition to your SD card.        
+To do this on a Windows machine, perform the following:     Open a cmd.exe instance as an Administrator.Run diskpart.exe and run the following commands:
+		select vol <a>; (where <a> = the drive letter of the SD card)
+		clean;		create part primary;		active;		format quick label="BOOTME";
+		exit 
+2. Copy all files and directories from the zip file to your SD card.    
+
+		drwxrwxrwx@ 1 gxp  staff       4096 Apr 13 09:56 boot
+		-rwxrwxrwx@ 1 gxp  staff    2113856 Oct  1  2013 bzImage
+		-rwxrwxrwx@ 1 gxp  staff    1441609 Oct  1  2013 core-image-minimal-initramfs-clanton.cpio.gz
+		-rwxrwxrwx@ 1 gxp  staff  314572800 Oct  1  2013 image-full-clanton.ext3
+	
+3. Insert the SD card, then power on the board.
+     
 
