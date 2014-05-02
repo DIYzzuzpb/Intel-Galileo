@@ -276,4 +276,43 @@ To do this on a Windows machine, perform the following:     Open a cmd.exe inst
 	
 3. Insert the SD card, then power on the board.
      
+###get Ethernet MAC address in a sketch
+
+	 Serial.println(system("cat /sys/class/net/eth0/address"));  
+or
+	
+	Serial.println(system("cat /sys/class/net/eth0/address > /dev/ttyGS0"));  
+	
+###system()
+
+	void setup()
+	{ 
+		 // put your setup code here, to run once:
+		Serial.begin(9600);
+ 
+		Serial.println("\n\nHello world!\n");
+		
+		Serial.println(system("ifconfig -a"));
+		Serial.println(system("ifconfig -all"));
+		Serial.println(system("cat /sys/class/net/eth0/address"));
+		Serial.println(system("mac_address"));
+		Serial.println(system("/sbin/ifconfig"));
+	}
+	
+	void loop()
+	{ }
+###开机自启动脚本设置
+
+*Galileo/Documents/boot_script*
+
+###IO速度研究
+*Galileo/Documents/IO_speed*
+###linux GPIO
+
+*Galileo/Documents/Programming_GPIO_From_Linux*
+
+###Sketch Size Limits
+*Galileo/Documents/sketch_size*
+
+
 
