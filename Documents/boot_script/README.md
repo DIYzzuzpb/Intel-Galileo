@@ -1,6 +1,7 @@
 Automatically start script at boot script
 ===
 
+###开启自动配置ethernet
 为了调试方便, 需要配置Galileo, 使其可以开机自动配置好Etherent, 这样就可以远程ssh登录到Galileo上面进行调试。
 
 1. 使用Arduino的IDE, 编译出Galileo的可执行文件。     
@@ -48,3 +49,13 @@ Automatically start script at boot script
 	可以在/etc/rc5.d/中看到新添加的自启动脚本链接。
 		
 		root@clanton:~# ls -l /etc/rc5.d/
+
+####远程下载Arduino程序	
+实现开机自动配置Ethernet后, 可以实现远程Arduino下载程序。
+
+1. 本机编译Arduino程序
+2. 下载.(因为没有直接连接Galileo, 所以下载会失败, 但是在Arduino的输出log中可以找到编译好的elf文件所在的路径)
+3. 通过scp命令, 将编译好的elf文件远程拷贝到Galileo中
+4. ssh远程登录至Galileo, 运行elf文件        
+		
+		./x.elf /dev/pts/0 /dev/ttyS0 &
