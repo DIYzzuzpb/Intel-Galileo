@@ -314,5 +314,6 @@ or
 ###Sketch Size Limits
 *Galileo/Documents/sketch_size*
 
+###Galileo PWM
 
-
+*Galileo/Documents/PWM*
