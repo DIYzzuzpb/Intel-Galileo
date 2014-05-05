@@ -86,3 +86,18 @@ Don't copy and paste, retype the line into terminal inside your Arduino For Gali
 	
 	cd /Applications/ArduiG.app/Contents/Resources/Java
 	ln -s . hardware/tools/x86/i586-poky-linux-uclibc/usr/include/c++/4.2.1
+	
+	
+##[the random() function](https://communities.intel.com/message/211224#211224)
+
+error: too many arguments to function 'long int random()'
+
+Galileo没有实现Arduino的random(int, int), 以及random(int), 而是实现了linux下的random(),
+所以应该将其更改为
+
+	long int rand();
+对应函数的用法。
+
+int a = random(10);
+
+	randNumber = small + (random() % (big - small));

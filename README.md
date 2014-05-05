@@ -43,6 +43,9 @@ Intel Galileo只有一个串口, 使用USB连接Galileo板子和电脑时, 板�
     Serial.println(buttonState);    // 串口输出
 
 ##Millis/ 运行时间读取
+返回当前的程序的运行毫秒数
+绝对值没有多少意义, 一般都是调用两次, 计算差值。
+
     unsigned long time = millis(); 
     //Returns Number of milliseconds since the program started (unsigned long)
 
@@ -284,6 +287,8 @@ or
 	Serial.println(system("cat /sys/class/net/eth0/address > /dev/ttyGS0"));  
 	
 ###system()
+
+system()可以执行linux命令行的语句, 并且返回0/256. 成功返回0, 失败返回256.
 
 	void setup()
 	{ 
