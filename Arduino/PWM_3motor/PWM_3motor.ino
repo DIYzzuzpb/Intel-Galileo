@@ -6,6 +6,8 @@ int pwm1 = 3;
 int pwm2 = 6;
 int pwm3 = 9;
 
+//  dir = high, motor down! 
+//  dir = low,  motor up!
 int dir1 = 2;
 int dir2 = 5;
 int dir3 = 8;
@@ -23,17 +25,8 @@ void setup() {
 
 void loop() {
   
-  digitalWrite(dir1, HIGH);
-  digitalWrite(dir2, HIGH);
-  digitalWrite(dir3, HIGH);
-  
-  delay(3000); //delay 3s
-  
-  digitalWrite(dir1, LOW);
-  digitalWrite(dir2, LOW);
-  digitalWrite(dir3, LOW);
-  
-  delay(3000); //delay 3s
+ //test1();
+ 
 }
 
 //set PWM use I2C 
@@ -83,4 +76,19 @@ void setPwmI2C(int _iPinNum, int _iPwmVal)
   Wire.write(_iPwmVal);
   Wire.endTransmission();
   
+}
+
+void test1()
+{
+  digitalWrite(dir1, HIGH);
+  digitalWrite(dir2, HIGH);
+  digitalWrite(dir3, HIGH);
+  
+  delay(5000); //delay 3s
+  
+  digitalWrite(dir1, LOW);
+  digitalWrite(dir2, LOW);
+  digitalWrite(dir3, LOW);
+  
+  delay(5000); //delay 3s
 }

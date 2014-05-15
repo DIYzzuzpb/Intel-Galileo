@@ -38,10 +38,10 @@ void setup()
   //SetTunings(0.100, 6.0, 0);   //                   5
   //SetTunings(0.100, 8.0, 0);   //                   3
   
-  SetTunings(0.10, 8.2, 0);
+  SetTunings(0.10, 8.0, 0);
   Input = 0;
   Output = 0;
-  Setpoint = 800;
+  Setpoint = 200;
   lastTime = 0;
   errSum = 0;
   lastErr = 0;

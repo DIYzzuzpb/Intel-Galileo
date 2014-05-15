@@ -6,6 +6,7 @@
  XXX: AHRS must connect the VCC-5V with Galileo!
 
   read three double data from AHRS(always keep output data ).
+  write data to Galileo /home/root/data.txt
   
  
  */
@@ -19,10 +20,14 @@ char ch = 'c';
 int len = 100;
 char buf[100];
 
+FILE *fp;
+
 void setup() {
   // put your setup code here, to run once:
   Serial1.begin(57600);
-  Serial.begin(9600);
+ // Serial.begin(9600);
+  
+  fp = fopen("/home/root/ahrs_data.txt", "w");
   
   delay(1000);
 }
@@ -37,52 +42,18 @@ void loop() {
   //100ms will make Arduino Serial buffer overflow, so need read the buffer and discard them.
   
   read_data();
-  Serial.print(yaw);
+
+  fprintf(fp,"%f,%f,%f\n", yaw, pitch, roll);
+ 
+ /* Serial.print(yaw);
   Serial.print(",");  
   Serial.print(pitch);
   Serial.print(",");
   Serial.print(roll);
   Serial.print("\n"); 
-  delay(100);
+  */
   
-  //Serial1.flush();
-}
-
-// method 1:
-// read all data in all time. 
-void read_all()
-{
-  char read_data;
-  // check if data has been sent from AHRS:
-  if (Serial1.available()) {
-    // read the most recent byte (which will be from 0 to 255):
-    read_data = Serial1.read();
-    Serial.print(read_data);  // print to Serial(/dev/ttyGS0)
-  }
-
-  if (Serial.available()) {
-    // read the most recent byte (which will be from 0 to 255):
-    read_data = Serial.read();
-    Serial1.print(read_data);  // print to Serial(/dev/ttyGS0)
-  }
-}
-
-//method 2:
-//read data by using buffer in sometime.
-void read_buffer()
-{
-  int len = 50;
-  char buffer[len];
-
-  // check if data has been sent from AHRS:
-  if (Serial1.available()) {
- 
-       
-    // read the most recent byte (which will be from 0 to 255):
-    Serial1.readBytes(buffer, len);
-    Serial.print(buffer);  // print to Serial(/dev/ttyGS0)
-    Serial.print("\n-------\n");
-  }
+  delay(100);
 }
 
 //method 3:
