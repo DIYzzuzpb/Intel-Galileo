@@ -14,9 +14,9 @@ int dir3 = 8;
 
 void setup() {
   Wire.begin();
-  setPwmI2C (pwm1, 100);
-  setPwmI2C (pwm2, 200);
-  setPwmI2C (pwm3, 127);
+  setPwmI2C (pwm1, 250);
+  setPwmI2C (pwm2, 250);
+  setPwmI2C (pwm3, 250);
  
   pinMode(dir1, OUTPUT);
   pinMode(dir2, OUTPUT);
@@ -25,7 +25,8 @@ void setup() {
 
 void loop() {
   
- //test1();
+ test1();
+ //downall();
  
 }
 
@@ -84,11 +85,18 @@ void test1()
   digitalWrite(dir2, HIGH);
   digitalWrite(dir3, HIGH);
   
-  delay(5000); //delay 3s
+  delay(3000); //delay 3s
   
   digitalWrite(dir1, LOW);
   digitalWrite(dir2, LOW);
   digitalWrite(dir3, LOW);
   
-  delay(5000); //delay 3s
+  delay(2000); //delay 3s
+}
+
+void downall()
+{
+    digitalWrite(dir1, HIGH);
+  digitalWrite(dir2, HIGH);
+  digitalWrite(dir3, HIGH);
 }
