@@ -19,6 +19,8 @@
  
  */
 
+#include <SCA60C.h>  // use it in test3();
+
 //Vo1 -> A0
 //Vo2 -> A1
 int SCA60C_Pin_x = A0;
@@ -28,8 +30,8 @@ int sensorValue_x = 0;
 int sensorValue_y = 0;
 
 //output voltage when horizontal.
-double voltage_offset_x = 2.29;
-double voltage_offset_y = 2.37;
+double voltage_offset_x = 2.32;
+double voltage_offset_y = 2.48;
 
 double voltage_x = 0;
 double voltage_y = 0;
@@ -42,7 +44,7 @@ void setup() {
 }
 
 void loop() {
-  test();
+  test3();
 }
 
 double SCA60C_getX()
@@ -123,5 +125,25 @@ void test2()
   Serial.print(",");
   Serial.print(angle_y);
   Serial.println(" ");
+}
+
+SCA60C sca(A0, A1, 2.34, 2.47);
+void test3()
+{
+  Serial.print("X:");
+  Serial.print(sca.GetValueX());
+  Serial.print(",");
+  Serial.print(sca.GetVolX());
+  Serial.print(",");
+  Serial.print(sca.GetAngleX());
+  Serial.print("; ");
+  
+  Serial.print("Y:");
+  Serial.print(sca.GetValueY());
+  Serial.print(",");
+  Serial.print(sca.GetVolY());
+  Serial.print(",");
+  Serial.print(sca.GetAngleY());
+  Serial.println("; ");
 }
 
