@@ -25,8 +25,8 @@ void setup() {
 
 void loop() {
   
- test1();
- //downall();
+ //test1();
+ downall();
  
 }
 
@@ -96,7 +96,23 @@ void test1()
 
 void downall()
 {
-    digitalWrite(dir1, HIGH);
+  digitalWrite(dir1, HIGH);
   digitalWrite(dir2, HIGH);
   digitalWrite(dir3, HIGH);
+}
+
+void Set_Motor_Stop()
+{
+  //set pwm 0 to stop three motor.
+  setPwmI2C (pwm1, 0); 
+  setPwmI2C (pwm2, 0);
+  setPwmI2C (pwm3, 0);
+}
+
+void Set_Motor_Speed(int pwm_speed)
+{
+  //set three motor's PWM value for control speed.(0 is stop and 255 is best speed of motor.)
+  setPwmI2C (pwm1, pwm_speed);
+  setPwmI2C (pwm2, pwm_speed);
+  setPwmI2C (pwm3, pwm_speed);
 }

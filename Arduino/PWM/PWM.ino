@@ -1,6 +1,6 @@
 #include "Wire.h"
 
-int pwm_pin = 3;
+int pwm_pin = 11;
 
 void setup() {
   Wire.begin();
