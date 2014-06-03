@@ -88,3 +88,10 @@ If you just use AnalogWrite(pinNumber, duty-cycle->0-255);
 	}
 
 
+###I2C設備
+Galileo使用CY8C9540A實現Arduino I/O & PWM的拓展。
+Galileo的以太網接口旁邊，是I2C* Address Jumper，可以通過Jumper來實現I2C地址的設定。
+
+To prevent a clash between the I2C* Slave address of the on board I/O expander and EEPROM with any external I2C* Slave devices, jumper J2 can be used to vary the I2C* address of the on-board devices.     With J2 connected to pin 1 (marked with white triangle), the 7-bit I/O Expander address is 0100001 and the 7-bit EEPROM address is 1010001.    Changing the jumper position changes the I/O Expander address to 0100000 and the EEPROM address to 1010000.    
+即，默認情況下，I2C的地址爲0x20與0x50；    如果將Jumper將在白色三角的位置，I2C地址則爲0x21 & 0x51.
+
