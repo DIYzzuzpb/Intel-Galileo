@@ -1,21 +1,23 @@
 /*
-  SCA60C(N1000060) 
- 
-              (Vo2)
-               up
-               ^
-               |
-               |  
- left <--------|---------right
-               |
-               |
-             down
-             (Vo1)
- 
- 
- (0.5~4.5V) (-90~90 degrees)
- Vo1: left-right   (x axis)
- Vo2: up-down      (y axis)
+  SCA60C( N1000060 accelerometer) 
+   
+        (Vo2 output pin)
+       
+              UP
+              ^
+              |
+              |  
+LEFT <--------|--------- RIGHT
+              |
+              |
+             DOWN
+
+       (Vo1 output pin)
+
+
+(0.5~4.5V) (-90~90 degrees)
+Vo1: left-right   (x axis), LEFT is X-axis positive direction.
+Vo2: up-down      (y axis), UP   is Y-axis positive direction.
  
  */
 
@@ -30,8 +32,8 @@ int sensorValue_x = 0;
 int sensorValue_y = 0;
 
 //output voltage when horizontal.
-double voltage_offset_x = 2.32;
-double voltage_offset_y = 2.48;
+double voltage_offset_x = 2.25;
+double voltage_offset_y = 2.22;
 
 double voltage_x = 0;
 double voltage_y = 0;
@@ -127,7 +129,7 @@ void test2()
   Serial.println(" ");
 }
 
-SCA60C sca(A0, A1, 2.34, 2.47);
+SCA60C sca(A0, A1, voltage_offset_x, voltage_offset_y);
 void test3()
 {
   Serial.print("X:");

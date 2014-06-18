@@ -35,11 +35,11 @@ void setup()
 
 void loop()
 {
-  //test_millis();
+  test_millis();
   
   //test_pinmode(); // 25ms
   //test_digitalWrite(); //2~3 ms, X -> high -> low need 5ms
-  test_analogWrite(); //first need enable PWM output (~40ms), then need 5ms.
+  //test_analogWrite(); //first need enable PWM output (~40ms), then need 5ms.
   //test_analogRead();  //1ms
   //test_serial_output(); // 100 char, 30~50ms
   //test_cal_int();       // '+' operation, many time will spend 1ms, so it's fast.
