@@ -44,11 +44,11 @@ void loop()
 {
   //test_millis();
   
-  //test_pinmode(); // 25ms
+  //test_pinmode();       // 25ms
   //test_digitalWrite(); //cost 2~3 ms if set pinMode, and write (X -> high -> low) need 5ms
   //test_analogWrite(); //first need enable PWM output (~40ms), then need 5ms.
-  //test_analogRead();  //1ms
-  //test_serial_output(); // 100 char, 30~50ms
+  //test_analogRead();  //6ms
+  test_serial_output(); // 100 char, 6~12ms
   //test_cal_int();       // '+' operation, many time will spend 1ms, so it's fast.
   //test_cal_double();        // '*' operation, so fast too.
 }
@@ -78,7 +78,6 @@ void test_digitalWrite()
   if IO has set pinMode(xxx, OUTPUT), digitalWrite() will cost 2~3 ms.
   if IO has not set pinMOde, digitalWrite() will cost 0~1 ms when write LOW and 19~20ms when write HIGH.
   */
-  
   
   TIME_S;
   //PIN 2 (output MODE).
@@ -116,9 +115,10 @@ int ch_i = 0;
 void test_serial_output()
 {
   TIME_S;
-  for(ch_i = 0; ch_i < 10000; ch_i++)
+  for(ch_i = 0; ch_i < 100; ch_i++)
     Serial.print(ch);
-  TIME_E;
+  TIME_E;              // 6~12 ms
+  
   delay(200);
 }
 

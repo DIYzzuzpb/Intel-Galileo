@@ -57,7 +57,7 @@
  * 
  ***********************************************************************/
 
-#define SERIAL_DEBUG   //open the Serial for debugging...turn off by commenting this row.
+//#define SERIAL_DEBUG   //open the Serial for debugging...turn off by commenting this row.
 
 #include "Wire.h"
 #include <PID_v1.h>
@@ -84,25 +84,26 @@ int dir1 = 2;
 int dir2 = 5;
 int dir3 = 8;
 
-#define M1_UP    (digitalWrite(dir1, LOW))
+//need set pinMode OUTPUT first!
+//digitalWrite() cost 2~3 ms each time.
+#define M1_UP    (digitalWrite(dir1, LOW))  
 #define M1_DOWN  (digitalWrite(dir1, HIGH))
 #define M2_UP    (digitalWrite(dir2, LOW))
 #define M2_DOWN  (digitalWrite(dir2, HIGH))
 #define M3_UP    (digitalWrite(dir3, LOW))
 #define M3_DOWN  (digitalWrite(dir3, HIGH))
 
-#define M1_SPEED(X)  (setPwmI2C(pwm1, (X)))
-#define M2_SPEED(X)  (setPwmI2C(pwm2, (X)))
-#define M3_SPEED(X)  (setPwmI2C(pwm3, (X)))
+#define M1_SPEED(X)  (setPwm(pwm1, (X)))
+#define M2_SPEED(X)  (setPwm(pwm2, (X)))
+#define M3_SPEED(X)  (setPwm(pwm3, (X)))
 
 int counter = 0;
-
 
 //PID controller
 //(Input range = +-20, Output range = +- 250, Kp = 12.50)
 //(if Kp = 25, range will equals +- 10).
-double KP_x = 25, KI_x = 5, KD_x = 2;
-double KP_y = 25, KI_y = 5, KD_y = 2;
+double KP_x = 25, KI_x = 3, KD_x = 1;
+double KP_y = 25, KI_y = 3, KD_y = 1;
 //Define Variables we'll be connecting to
 double Setpoint_x = 0, Input_x = 0, Output_x = 0;
 double Setpoint_y = 0, Input_y = 0, Output_y = 0;
@@ -139,8 +140,8 @@ void setup() {
   setPwmI2C (pwm2, 0);
   setPwmI2C (pwm3, 0);
 
-  pinMode(dir1, OUTPUT); //cost 25ms
-  pinMode(dir2, OUTPUT);
+  pinMode(dir1, OUTPUT); //cost 25ms each time.
+  pinMode(dir2, OUTPUT); 
   pinMode(dir3, OUTPUT);
   //----> need 220ms.
 
@@ -155,6 +156,8 @@ void setup() {
   Setpoint_y = 0; // set aim of Y axis angle.
   dir_state_y = 0;
   //turn the PID on
+  myPID_x.SetSampleTime(70);
+  myPID_y.SetSampleTime(70);
   myPID_x.SetOutputLimits(OutMinLimit_x, OutMaxLimit_x); //set the PID output Limits; 
   myPID_x.SetMode(AUTOMATIC);
   myPID_y.SetOutputLimits(OutMinLimit_y, OutMaxLimit_y); //set the PID output Limits; 
@@ -164,18 +167,19 @@ void setup() {
 
 //-------------------------------------------------------------------------------//
 void loop() {
-
   //1. read data of X,Y axis angle.
-  Input_x = sca.GetAngleX();    //need 6ms, most is analogRead();
-  Input_y = sca.GetAngleY();
+  Input_x = sca.GetAngleX();    //need 6ms, because of analogRead();
+  //2. PID, just need 1ms to calculate pid output.
+  //   return new value of (Output_x & Output_y).
+  output_changed = myPID_x.Compute();
+  if(output_changed == true)
+  {
+    Input_y = sca.GetAngleY();
+    output_changed = myPID_y.Compute();
+  }
 
-  //2. PID, just need 1ms to calculate pid output. return new value of (Output_x & Output_y).
-  myPID_x.Compute();
-  output_changed = myPID_y.Compute();
-
-
+  //2.5 serial output for debugging ...
 #ifdef SERIAL_DEBUG      //need 10ms;
-  //debug...
   counter++;
   if(output_changed == true)
   {
@@ -191,13 +195,13 @@ void loop() {
   }
 #endif
 
-
+ 
   //3. decoupling for three motor.
-  if(output_changed)
-    decoupling();        //need 25~35ms to calculate (use setPwmI2C()), (use setPwm() is need 30~40ms)
-    
-    
-    //loop() is over.
+  //set dir need 2ms. set pwm need 12ms. each motor will cost (2 + 12 ms), all cost is 40ms.
+   if(output_changed)
+   decoupling();
+  
+  //loop() is over.
 }
 
 //-------------------------------------------------------------------------------//
@@ -214,7 +218,6 @@ void decoupling()
     {
       dir_state_y = STATE_UP;
       M1_UP;
-      M1_SPEED(Output_y);
     }
 #ifdef SERIAL_DEBUG
     Serial.print(",M1^");
@@ -229,7 +232,6 @@ void decoupling()
     {
       dir_state_y = STATE_DOWN;
       M1_DOWN;
-      M1_SPEED(abs(Output_y));
     }
 #ifdef SERIAL_DEBUG
     Serial.print(",M1V");
@@ -241,44 +243,47 @@ void decoupling()
   else //else , Input - range < Output < Input + range. Y axis in Range(-3, +3), mean STABLE!
   {
     dir_state_y = STATE_STOP;
-    M1_SPEED(10);      //a very little pwm value means a very slow speed of Motor.
+    Output_y = 10;      //a very little pwm value means a very slow speed of Motor.
     move2 = move3 = 0;
+    
 #ifdef SERIAL_DEBUG
     Serial.print(",M1-");
 #endif
   }
+  
+  M1_SPEED(abs(Output_y));
 
   //X axis, Motor2 & 3;
-   if(Output_x > OutputRange_x) // X axis need to up, M3.
-   {
-     move3 += Output_x;
-     move2 -= Output_x;
-     #ifdef SERIAL_DEBUG
-     Serial.print(",X^"); //X axis is stable.
-     #endif
-   }
-   else if(Output_x < -OutputRange_x) //X axis need to down, M3.
-   { 
-     move3 += Output_x;
-     move2 -= Output_x;
-     #ifdef SERIAL_DEBUG
-     Serial.print(",XV"); //X axis is stable.
-     #endif
-   }
-   else //else , Input - range < Output < Input + range. X axis in Range(-3, +3).
-   {
-     #ifdef SERIAL_DEBUG
-     Serial.print(",X-"); //X axis is stable.
-     #endif
-   }
-   
-   #ifdef SERIAL_DEBUG
-   //set Motor 2 & 3 by judging the value of move2&3;
-   Serial.print(",move:");
-   Serial.print(move2);
-   Serial.print(",");
-   Serial.print(move3);
-   #endif
+  if(Output_x > OutputRange_x) // X axis need to up, M3.
+  {
+    move3 += Output_x;
+    move2 -= Output_x;
+#ifdef SERIAL_DEBUG
+    Serial.print(",X^"); //X axis is stable.
+#endif
+  }
+  else if(Output_x < -OutputRange_x) //X axis need to down, M3.
+  { 
+    move3 += Output_x;
+    move2 -= Output_x;
+#ifdef SERIAL_DEBUG
+    Serial.print(",XV"); //X axis is stable.
+#endif
+  }
+  else //else , Input - range < Output < Input + range. X axis in Range(-3, +3).
+  {
+#ifdef SERIAL_DEBUG
+    Serial.print(",X-"); //X axis is stable.
+#endif
+  }
+
+#ifdef SERIAL_DEBUG
+  //set Motor 2 & 3 by judging the value of move2&3;
+  Serial.print(",move:");
+  Serial.print(move2);
+  Serial.print(",");
+  Serial.print(move3);
+#endif
 
   if(move2 != old_move2)
   {
@@ -288,7 +293,7 @@ void decoupling()
       M2_UP;
     else
       M2_DOWN;
- 
+
     M2_SPEED(abs(move2));
   }
 
@@ -299,10 +304,10 @@ void decoupling()
       M3_UP;
     else
       M3_DOWN;
-      
+
     M3_SPEED(abs(move3));
   }
-  
+
 #ifdef SERIAL_DEBUG
   Serial.println(" ");
 #endif
@@ -343,6 +348,7 @@ void Set_Motor_Speed(int pwm_speed)
 
 //set PWM use I2C 
 //set pin(_iPinNum) output PWM with duty cycle of (_iPwmVal / 255).
+//need 40ms first time because of analogWrite(), and need 11ms each time after.
 void setPwmI2C(int _iPinNum, int _iPwmVal)
 {
   if(_iPwmVal > 250) _iPwmVal = 250;
@@ -389,7 +395,7 @@ void setPwmI2C(int _iPinNum, int _iPwmVal)
   Wire.endTransmission();
 }
 
-//just set pwm period & pulse of the PWM output. //need 10ms
+//just set pwm period & pulse of the PWM output. //need 7~8 ms each time.
 void setPwm(int _iPinNum, int _iPwmVal)
 {
   if(_iPwmVal > 250) _iPwmVal = 250;
@@ -406,3 +412,39 @@ void setPwm(int _iPinNum, int _iPwmVal)
   Wire.write(_iPwmVal);
   Wire.endTransmission();
 }
+
+//--------------------------pthread function
+void *getAngleX(void *arg)
+{
+  Input_x = sca.GetAngleX();    //need 6ms, most is analogRead();
+  return NULL;
+}
+
+void *getAngleY(void *arg)
+{
+  Input_y = sca.GetAngleY();
+  return NULL;
+}
+
+void *setpwm1(void *arg)
+{
+  M1_UP;
+  M1_SPEED(Output_y);
+  return NULL;
+}
+
+void *setpwm2(void *arg)
+{
+  M2_UP;
+  M2_SPEED(Output_y);
+  return NULL;
+}
+
+void *setpwm3(void *arg)
+{
+  M3_UP;
+  M3_SPEED(Output_y);
+  return NULL;
+}
+
+
