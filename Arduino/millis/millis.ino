@@ -5,11 +5,17 @@
   compile in Arduino for Galileo ( Intel_Galileo_Arduino_SW_1.5.3_on_MacOSX _v1.0.0 ).
 -------------------------->
   pinMode()        25ms
-  digitalWrite()   3ms
+  
+  digitalWrite()   
+     if IO has set pinMode(xxx, OUTPUT), digitalWrite() will cost 2~3 ms.
+     if IO has not set pinMOde, digitalWrite() will cost 0~1 ms when write LOW and 19~20ms when write HIGH.
+  
   analogWrite();   //first need enable PWM output (~40ms), then need 5ms. [PIN 0~13]
-  analogWrite();   1ms [PIN A0 ~ A5]
-  analogRead();    1ms [PIN A0 ~ A5]
-  '+ - * / '       very fast.
+  analogRead();    6ms [PIN A0 ~ A5]
+    Analog Input: PIN A0~A5.
+    can't use it as Analog Output.(No DAC in Intel Galileo).
+    
+  '+ - * / 'operation calculate       very fast.
   
   
 -------------------------->
@@ -23,7 +29,7 @@ unsigned long time_start = 0, time_end = 0;
 
 /*Usage: (need to begin 'Serial' first...)
 TIME_S;
-test_function();  //calculate the cost time of this function.
+  test_function();  //calculate the cost time of this function.
 TIME_E;
 */
 
@@ -33,12 +39,13 @@ void setup()
   pinMode(2, OUTPUT); //25ms
 }
 
+
 void loop()
 {
-  test_millis();
+  //test_millis();
   
   //test_pinmode(); // 25ms
-  //test_digitalWrite(); //2~3 ms, X -> high -> low need 5ms
+  //test_digitalWrite(); //cost 2~3 ms if set pinMode, and write (X -> high -> low) need 5ms
   //test_analogWrite(); //first need enable PWM output (~40ms), then need 5ms.
   //test_analogRead();  //1ms
   //test_serial_output(); // 100 char, 30~50ms
@@ -67,16 +74,31 @@ void test_pinmode()
 
 void test_digitalWrite()
 {
+  /*
+  if IO has set pinMode(xxx, OUTPUT), digitalWrite() will cost 2~3 ms.
+  if IO has not set pinMOde, digitalWrite() will cost 0~1 ms when write LOW and 19~20ms when write HIGH.
+  */
+  
+  
   TIME_S;
-  digitalWrite(2, HIGH);      //2~3 ms
-  digitalWrite(2, LOW);
+  //PIN 2 (output MODE).
+  //digitalWrite(2, HIGH);     //2~3 ms
+  //digitalWrite(2, LOW);      //2~3 ms
+  
+  //IO 2, (if not set output mode in setup() ).
+  //digitalWrite(2, LOW);      //0~1 ms
+  //digitalWrite(2, HIGH);     //23~24 ms
+  
+  //IO 3, (not set output mode int setup() ).
+  //digitalWrite(3, LOW);        //0~1 ms
+  //digitalWrite(3, HIGH);        //23~24 ms
   TIME_E;
 }
 
 void test_analogWrite()
 {
   TIME_S;
-  analogWrite(3, 1);      //first need enable PWM output (~40ms), then need 5ms.
+  analogWrite(6, 1);      //first need enable PWM output (~40ms), then need 5ms.
   TIME_E;
 }
 
@@ -84,7 +106,7 @@ int analog_input_0 = 0;
 void test_analogRead()
 {
   TIME_S;
-  analog_input_0 = analogRead(A0);
+  analog_input_0 = analogRead(A0);    //5~6 ms
   TIME_E;
   Serial.println(analog_input_0);
 }
