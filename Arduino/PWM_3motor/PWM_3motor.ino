@@ -3,39 +3,52 @@
 // PWM pin : 3,5,6,9,10,11
 
 int pwm1 = 3;
-int pwm2 = 6;
-int pwm3 = 9;
+int pwm2 = 5;
+int pwm3 = 6;
 
 //  dir = high, motor down! 
 //  dir = low,  motor up!
 int dir1 = 2;
-int dir2 = 5;
-int dir3 = 8;
+int dir2 = 4;
+int dir3 = 7;
 
 void setup() {
+  Serial.begin(115200);
   Wire.begin();
-  setPwmI2C (pwm1, 250);
-  setPwmI2C (pwm2, 250);
-  setPwmI2C (pwm3, 250);
+  setPwmI2C (pwm1, 0);
+  setPwmI2C (pwm2, 0);
+  setPwmI2C (pwm3, 0);
  
   pinMode(dir1, OUTPUT);
   pinMode(dir2, OUTPUT);
   pinMode(dir3, OUTPUT);
+  
+  downall();
+  
+  /*
+  digitalWrite(dir1, LOW);
+  digitalWrite(dir2, LOW);
+  digitalWrite(dir3, LOW);
+  setPwmI2C (pwm1, 250);
+  setPwmI2C (pwm2, 250);
+  setPwmI2C (pwm3, 250);
+  delay(200);
+  
+  //test1();
+  Set_Motor_Stop();
+  */
 }
 
 void loop() {
-  
- //test1();
- downall();
- 
+  //test2();
 }
 
-//set PWM use I2C 
+//set PWM use I2C
 //set pin(_iPinNum) output PWM with duty cycle of (_iPwmVal / 255).
 void setPwmI2C(int _iPinNum, int _iPwmVal)
 {
   // Select pin to write I2C commands to
-  analogWrite(_iPinNum,1);            //analogWrite(pin, 1) will enable the PWM on the pin. 
+  analogWrite(_iPinNum,1);            //analogWrite(pin, 1) will enable the PWM on the pin.
                                       //but AnalogWrite(pin,0) does not disable the pwm.
 
   //Then there’s the I2C commands...
@@ -85,13 +98,48 @@ void test1()
   digitalWrite(dir2, HIGH);
   digitalWrite(dir3, HIGH);
   
-  delay(3000); //delay 3s
+  delay(4000); //delay 3s
   
   digitalWrite(dir1, LOW);
   digitalWrite(dir2, LOW);
   digitalWrite(dir3, LOW);
   
-  delay(2000); //delay 3s
+  delay(1000); //delay 3s
+}
+
+void test2()
+{
+  int i = 0;
+  double angle = 0;
+  double data = 0;
+  for(i = 0; i < 3140; i++,angle += 0.01)
+  {
+    data = sin(angle);
+    set_pwm1(data);
+    Serial.println(data);
+    delay(20);
+  }
+}
+
+void set_pwm1(double data)
+{
+  if(data > 0)
+  {
+    digitalWrite(dir1, LOW);
+    digitalWrite(dir2, HIGH);
+    digitalWrite(dir3, HIGH);
+  }
+  else
+  {
+    digitalWrite(dir1, HIGH);
+    digitalWrite(dir2, LOW);
+    digitalWrite(dir3, LOW);
+  }
+  
+  data = abs(data);
+  setPwmI2C (pwm1, data * 25);
+  setPwmI2C (pwm2, data * 25);
+  setPwmI2C (pwm3, data * 25);
 }
 
 void downall()
@@ -99,6 +147,11 @@ void downall()
   digitalWrite(dir1, HIGH);
   digitalWrite(dir2, HIGH);
   digitalWrite(dir3, HIGH);
+  setPwmI2C (pwm1, 250);
+  setPwmI2C (pwm2, 250);
+  setPwmI2C (pwm3, 250);
+  delay(3000);
+  Set_Motor_Stop();
 }
 
 void Set_Motor_Stop()

@@ -16,24 +16,26 @@ LEFT <--------|--------- RIGHT
 
 
 (0.5~4.5V) (-90~90 degrees)
-Vo1: left-right   (x axis), LEFT is X-axis positive direction.
-Vo2: up-down      (y axis), UP   is Y-axis positive direction.
+Vo1: left-right   (x axis), LEFT is X-axis positive direction.    - green wire - A1
+Vo2: up-down      (y axis), UP   is Y-axis positive direction.    - blue  wire - A0
  
+ 
+  
  */
 
 #include <SCA60C.h>  // use it in test3();
 
 //Vo1 -> A0
 //Vo2 -> A1
-int SCA60C_Pin_x = A0;
-int SCA60C_Pin_y = A1;
+int SCA60C_Pin_x = A1;  //
+int SCA60C_Pin_y = A0;
 
 int sensorValue_x = 0;
 int sensorValue_y = 0;
 
 //output voltage when horizontal.
 double voltage_offset_x = 2.25;
-double voltage_offset_y = 2.22;
+double voltage_offset_y = 2.30;
 
 double voltage_x = 0;
 double voltage_y = 0;
@@ -47,6 +49,7 @@ void setup() {
 
 void loop() {
   test3();
+  //sample();
 }
 
 double SCA60C_getX()
@@ -129,7 +132,8 @@ void test2()
   Serial.println(" ");
 }
 
-SCA60C sca(A0, A1, voltage_offset_x, voltage_offset_y);
+SCA60C sca(A1, A0, voltage_offset_x, voltage_offset_y);
+
 void test3()
 {
   Serial.print("X:");
@@ -139,6 +143,7 @@ void test3()
   Serial.print(",");
   Serial.print(sca.GetAngleX());
   Serial.print("; ");
+  Serial.print(" ");
   
   Serial.print("Y:");
   Serial.print(sca.GetValueY());
@@ -146,6 +151,13 @@ void test3()
   Serial.print(sca.GetVolY());
   Serial.print(",");
   Serial.print(sca.GetAngleY());
-  Serial.println("; ");
+  Serial.println(" ");
 }
 
+void sample()
+{
+  Serial.print(sca.GetAngleX());
+  Serial.print(" ");
+  Serial.print(sca.GetAngleY());
+  Serial.println(" ");
+}
