@@ -8,7 +8,7 @@
  * 
  *        (Vo2 output pin)
  * 
- *               UP
+ *               UP (face to Ground, Motor 1)
  *               ^
  *               |
  *               |  
@@ -34,56 +34,59 @@
  * Connect:
  * 
  * SCA60C:
- * Vo1 - Galileo Analog Input A0
- * Vo2 - Galileo Analog Input A1
- * VCC - Galileo 5V
- * GND - Galileo GND 
+ * Vo1 - Galileo Analog Input A0    --  green   wire 
+ * Vo2 - Galileo Analog Input A1    --  blue    wire 
+ * VCC - Galileo 5V                 --  red     wire
+ * GND - Galileo GND                --  brown   wire
  *
  * (0.5~4.5V) (-90~90 degrees)
  * Vo1: left-right   (x axis)
  * Vo2: up-down      (y axis)
  * 
+ *  2   3    4    5     6      7
+ *  D1  P1   D2   P2    P3    D3
+ *
  * Motor: (pwm 0~255) (dir: 0 up, 1 down)
  * pwm1:  IO 3
- * pwm2:  IO 6
- * pwm3:  IO 9
+ * pwm2:  IO 5
+ * pwm3:  IO 6
  * 
  * dir1:  IO 2
- * dir2:  IO 5
- * dir3:  IO 8
+ * dir2:  IO 4
+ * dir3:  IO 7
  * 
  * read three double data from AHRS(always keep output data ).
  * 
  * 
  ***********************************************************************/
 
-//#define SERIAL_DEBUG   //open the Serial for debugging...turn off by commenting this row.
+#define SERIAL_DEBUG   //open the Serial for debugging...turn off by commenting this row.
+#define KALMANFILTER   //open kalman filter.
 
 #include "Wire.h"
 #include <PID_v1.h>
 #include <SCA60C.h>
 
+/***** timer *****/
 int time_start = 0, time_end = 0;
 #define TIME_S (time_start = millis())
 #define TIME_E (time_end = millis(),Serial.print("Time:"),Serial.println(time_end - time_start))
 
-//SCA60C module in <SCA60C.h>
-//Vo1 -> A0
-//Vo2 -> A1
-SCA60C sca(A0, A1, 2.25, 2.22); // set the output offset voltage when horizontal. 
+/***** SCA60C module in <SCA60C.h> *****/
+//Vo1 -> A0, Vo2 -> A1
+SCA60C sca(A0, A1, 2.22, 2.34); // set the output offset voltage when horizontal. 
 double angle_x = 0;
 double angle_y = 0;
 
-//Motor pwm
-// PWM pin : 3,5,6,9,10,11
+/***** Motor PWM *****/
+// All Arduino PWM pin is : 3,5,6,9,10,11
 int pwm1 = 3;
-int pwm2 = 6;
-int pwm3 = 9;
+int pwm2 = 5;
+int pwm3 = 6;
 // motor dir
 int dir1 = 2;
-int dir2 = 5;
-int dir3 = 8;
-
+int dir2 = 4;
+int dir3 = 7;
 //need set pinMode OUTPUT first!
 //digitalWrite() cost 2~3 ms each time.
 #define M1_UP    (digitalWrite(dir1, LOW))  
@@ -92,24 +95,26 @@ int dir3 = 8;
 #define M2_DOWN  (digitalWrite(dir2, HIGH))
 #define M3_UP    (digitalWrite(dir3, LOW))
 #define M3_DOWN  (digitalWrite(dir3, HIGH))
-
+//set Motor speed by set PWM.
 #define M1_SPEED(X)  (setPwm(pwm1, (X)))
 #define M2_SPEED(X)  (setPwm(pwm2, (X)))
 #define M3_SPEED(X)  (setPwm(pwm3, (X)))
 
+//just for serial debug output index.
 int counter = 0;
 
-//PID controller
+/***** PID controller *****/
 //(Input range = +-20, Output range = +- 250, Kp = 12.50)
 //(if Kp = 25, range will equals +- 10).
-double KP_x = 25, KI_x = 3, KD_x = 1;
-double KP_y = 25, KI_y = 3, KD_y = 1;
+double KP_x = 30, KI_x = 0, KD_x = 3;
+double KP_y = 30, KI_y = 0, KD_y = 3;
 //Define Variables we'll be connecting to
 double Setpoint_x = 0, Input_x = 0, Output_x = 0;
 double Setpoint_y = 0, Input_y = 0, Output_y = 0;
 //PID output Limit, ±100;    Stable range = ±3.
-double OutMinLimit_x = -100 * KP_x, OutMaxLimit_x = 100 * KP_x, OutputRange_x = 3 * KP_x;
-double OutMinLimit_y = -100 * KP_y, OutMaxLimit_y = 100 * KP_y, OutputRange_y = 3 * KP_y;
+double OutMinLimit_x = -100 * KP_x, OutMaxLimit_x = 100 * KP_x, OutputRange_x = 0.1 * KP_x;
+double OutMinLimit_y = -100 * KP_y, OutMaxLimit_y = 100 * KP_y, OutputRange_y = 0.1 * KP_y;
+double last_angle = 0;
 //Specify the links and initial tuning parameters
 PID myPID_x(&Input_x, &Output_x, &Setpoint_x, KP_x, KI_x ,KD_x , DIRECT);
 PID myPID_y(&Input_y, &Output_y, &Setpoint_y, KP_y, KI_y ,KD_y , DIRECT);
@@ -126,11 +131,30 @@ int dir_state_y = STATE_STOP;
 int move1 = 0, move2 = 0, move3 = 0;
 int old_move1 = 0, old_move2 = 0, old_move3 = 0; // record the last value of move2 & move3.
 
+//Kalman filter
+double raw_data[2], kalman_data[2];
+
+
+//PID Tuning...MUST open SERIAL_DEBUG.
+pthread_t mythread1;
+int read_data = 0;  //read data from serial.
+String inString = "";  //switch string to int.(Serial.read() return char value.)
+int int_value[3];
+int int_index = 0;    
+boolean change_PID = false;  // the flag of change PID parameter.
+
+//button - A4
+
+int pin_led = 13;
+int pin_key = A4;
+int key_value = 0;
+
 //-------------------------------------------------------------------------------//
+
 void setup() {
 #ifdef SERIAL_DEBUG
   //turn on Serial for debugging...
-  Serial.begin(9600);   
+  Serial.begin(115200);   
   Serial.println("Motor ready...");
 #endif
 
@@ -147,36 +171,79 @@ void setup() {
 
   //set an initial position for three motors.
   downall(3000);
-  upall(2000);
-
+  upall(2200);
 
   //PID set
-  Setpoint_x = 0; // set aim of X axis angle.
-  dir_state_x = 0;
-  Setpoint_y = 0; // set aim of Y axis angle.
-  dir_state_y = 0;
-  //turn the PID on
+  Setpoint_x = dir_state_x = 0; // set aim of X axis angle.
+  Setpoint_y = dir_state_y = 0; // set aim of Y axis angle.
+  //turn the PID on.
   myPID_x.SetSampleTime(70);
-  myPID_y.SetSampleTime(70);
   myPID_x.SetOutputLimits(OutMinLimit_x, OutMaxLimit_x); //set the PID output Limits; 
   myPID_x.SetMode(AUTOMATIC);
+  myPID_y.SetSampleTime(70);
   myPID_y.SetOutputLimits(OutMinLimit_y, OutMaxLimit_y); //set the PID output Limits; 
   myPID_y.SetMode(AUTOMATIC);
-  //PID set over.
+  //PID set over ............
+
+#ifdef SERIAL_DEBUG
+  //create a new thread to set PID parameter from Serial.
+  if(pthread_create(&mythread1, NULL, &thread_function, NULL))  //return 0 when success.
+  {
+    Serial.println("Error creating thread.\n");
+  }
+#endif
+
 }
 
 //-------------------------------------------------------------------------------//
 void loop() {
   //1. read data of X,Y axis angle.
   Input_x = sca.GetAngleX();    //need 6ms, because of analogRead();
-  //2. PID, just need 1ms to calculate pid output.
-  //   return new value of (Output_x & Output_y).
-  output_changed = myPID_x.Compute();
-  if(output_changed == true)
+  Input_y = sca.GetAngleY();
+#ifdef KALMANFILTER  
+  //1.5, Kalman filter.
+  raw_data[0] = Input_x;
+  raw_data[1] = Input_y;
+  kalmanfilter(raw_data, kalman_data); 
+  Input_x = kalman_data[0];
+  Input_y = kalman_data[1];
+#endif
+  
+  /*
+  //1.5 , FANG ZHI DOU DONG.
+  if(Input_x * last_angle >= 0)
   {
-    Input_y = sca.GetAngleY();
+    //2. PID, just need 1ms to calculate pid output.
+    //   return new value of (Output_x & Output_y).
+    myPID_x.Compute();
     output_changed = myPID_y.Compute();
   }
+  else
+  {
+    output_changed = true;
+  }
+  */
+  
+  if(abs(Input_x) > 3)
+  {
+    myPID_x.SetTunings(KP_x + 10, KI_x, KD_x);
+  }
+  else
+  {
+    myPID_x.SetTunings(KP_x, KI_x, KD_x);
+  }
+  if(abs(Input_y) > 3)
+  {
+    myPID_y.SetTunings(KP_y + 10, KI_y, KD_y);
+  }
+  else
+  {
+    myPID_y.SetTunings(KP_y, KI_y, KD_y);
+  }
+ 
+  myPID_x.Compute();
+  output_changed = myPID_y.Compute();
+  last_angle = Input_x;
 
   //2.5 serial output for debugging ...
 #ifdef SERIAL_DEBUG      //need 10ms;
@@ -198,9 +265,21 @@ void loop() {
  
   //3. decoupling for three motor.
   //set dir need 2ms. set pwm need 12ms. each motor will cost (2 + 12 ms), all cost is 40ms.
-   if(output_changed)
+   if(output_changed == true)
    decoupling();
-  
+
+#ifdef SERIAL_DEBUG
+   if(change_PID == true)
+   {
+      change_PID = false;
+      int_index = 0;
+      KP_x = KP_y = int_value[0];
+      KI_x = KI_y = int_value[1];
+      KD_x = KD_y = int_value[2];
+      myPID_x.SetTunings(int_value[0], int_value[1], int_value[2]);
+      myPID_y.SetTunings(int_value[0], int_value[1], int_value[2]);
+   }
+#endif
   //loop() is over.
 }
 
@@ -346,9 +425,9 @@ void Set_Motor_Speed(int pwm_speed)
 }
 
 
+
 //set PWM use I2C 
 //set pin(_iPinNum) output PWM with duty cycle of (_iPwmVal / 255).
-//need 40ms first time because of analogWrite(), and need 11ms each time after.
 void setPwmI2C(int _iPinNum, int _iPwmVal)
 {
   if(_iPwmVal > 250) _iPwmVal = 250;
@@ -395,7 +474,7 @@ void setPwmI2C(int _iPinNum, int _iPwmVal)
   Wire.endTransmission();
 }
 
-//just set pwm period & pulse of the PWM output. //need 7~8 ms each time.
+//just set pwm period & pulse of the PWM output. //need 10ms
 void setPwm(int _iPinNum, int _iPwmVal)
 {
   if(_iPwmVal > 250) _iPwmVal = 250;
@@ -413,38 +492,210 @@ void setPwm(int _iPinNum, int _iPwmVal)
   Wire.endTransmission();
 }
 
-//--------------------------pthread function
-void *getAngleX(void *arg)
+
+
+/***** Kalman filter *****/
+double x_est[6];
+double p_est[36];
+void kalmanfilter(double z[2], double y[2])
 {
-  Input_x = sca.GetAngleX();    //need 6ms, most is analogRead();
-  return NULL;
+  int Q[36];
+  int r2;
+  double A[36];
+  int r1;
+  double x_prd[6];
+  static const int b_A[36] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0,
+    0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1 };
+
+  int k;
+  double p_prd[36];
+  double a21;
+  static const int B[36] = { 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0,
+    1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 };
+
+  double klm_gain[12];
+  static const int c_A[12] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+  double S[4];
+  static const int b_B[12] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 };
+
+  static const long int R[4] = { 1000000000, 0, 0, 1000000000 };
+
+  double c_B[12];
+  double a22;
+  double Y[12];
+  double b_z[2];
+
+  /*    Copyright 2010 The MathWorks, Inc. */
+  /*  Initialize state transition matrix */
+  /*      % [x  ] */
+  /*      % [y  ] */
+  /*      % [Vx] */
+  /*      % [Vy] */
+  /*      % [Ax] */
+  /*  [Ay] */
+  /*  Initialize measurement matrix */
+  for (r2 = 0; r2 < 36; r2++) {
+    Q[r2] = 0;
+  }
+
+  for (r1 = 0; r1 < 6; r1++) {
+    Q[r1 + 6 * r1] = 1;
+
+    /*  Initial state conditions */
+    /*  Predicted state and covariance */
+    x_prd[r1] = 0.0;
+    for (r2 = 0; r2 < 6; r2++) {
+      x_prd[r1] += (double)b_A[r1 + 6 * r2] * x_est[r2];
+    }
+
+    for (r2 = 0; r2 < 6; r2++) {
+      A[r1 + 6 * r2] = 0.0;
+      for (k = 0; k < 6; k++) {
+        A[r1 + 6 * r2] += (double)b_A[r1 + 6 * k] * p_est[k + 6 * r2];
+      }
+    }
+  }
+
+  for (r2 = 0; r2 < 6; r2++) {
+    for (k = 0; k < 6; k++) {
+      a21 = 0.0;
+      for (r1 = 0; r1 < 6; r1++) {
+        a21 += A[r2 + 6 * r1] * (double)B[r1 + 6 * k];
+      }
+
+      p_prd[r2 + 6 * k] = a21 + (double)Q[r2 + 6 * k];
+    }
+  }
+
+  /*  Estimation */
+  for (r2 = 0; r2 < 2; r2++) {
+    for (k = 0; k < 6; k++) {
+      klm_gain[r2 + (k << 1)] = 0.0;
+      for (r1 = 0; r1 < 6; r1++) {
+        klm_gain[r2 + (k << 1)] += (double)c_A[r2 + (r1 << 1)] * p_prd[k + 6 *
+          r1];
+      }
+    }
+  }
+
+  for (r2 = 0; r2 < 2; r2++) {
+    for (k = 0; k < 2; k++) {
+      a21 = 0.0;
+      for (r1 = 0; r1 < 6; r1++) {
+        a21 += klm_gain[r2 + (r1 << 1)] * (double)b_B[r1 + 6 * k];
+      }
+
+      S[r2 + (k << 1)] = a21 + (double)R[r2 + (k << 1)];
+    }
+  }
+
+  for (r2 = 0; r2 < 2; r2++) {
+    for (k = 0; k < 6; k++) {
+      c_B[r2 + (k << 1)] = 0.0;
+      for (r1 = 0; r1 < 6; r1++) {
+        c_B[r2 + (k << 1)] += (double)c_A[r2 + (r1 << 1)] * p_prd[k + 6 * r1];
+      }
+    }
+  }
+
+  if (fabs(S[1]) > fabs(S[0])) {
+    r1 = 1;
+    r2 = 0;
+  } else {
+    r1 = 0;
+    r2 = 1;
+  }
+
+  a21 = S[r2] / S[r1];
+  a22 = S[2 + r2] - a21 * S[2 + r1];
+  for (k = 0; k < 6; k++) {
+    Y[1 + (k << 1)] = (c_B[r2 + (k << 1)] - c_B[r1 + (k << 1)] * a21) / a22;
+    Y[k << 1] = (c_B[r1 + (k << 1)] - Y[1 + (k << 1)] * S[2 + r1]) / S[r1];
+  }
+
+  for (r2 = 0; r2 < 2; r2++) {
+    for (k = 0; k < 6; k++) {
+      klm_gain[k + 6 * r2] = Y[r2 + (k << 1)];
+    }
+  }
+
+  /*  Estimated state and covariance */
+  for (r2 = 0; r2 < 2; r2++) {
+    a21 = 0.0;
+    for (k = 0; k < 6; k++) {
+      a21 += (double)c_A[r2 + (k << 1)] * x_prd[k];
+    }
+
+    b_z[r2] = z[r2] - a21;
+  }
+
+  for (r2 = 0; r2 < 6; r2++) {
+    a21 = 0.0;
+    for (k = 0; k < 2; k++) {
+      a21 += klm_gain[r2 + 6 * k] * b_z[k];
+    }
+
+    x_est[r2] = x_prd[r2] + a21;
+  }
+
+  for (r2 = 0; r2 < 6; r2++) {
+    for (k = 0; k < 6; k++) {
+      A[r2 + 6 * k] = 0.0;
+      for (r1 = 0; r1 < 2; r1++) {
+        A[r2 + 6 * k] += klm_gain[r2 + 6 * r1] * (double)c_A[r1 + (k << 1)];
+      }
+    }
+  }
+
+  for (r2 = 0; r2 < 6; r2++) {
+    for (k = 0; k < 6; k++) {
+      a21 = 0.0;
+      for (r1 = 0; r1 < 6; r1++) {
+        a21 += A[r2 + 6 * r1] * p_prd[r1 + 6 * k];
+      }
+
+      p_est[r2 + 6 * k] = p_prd[r2 + 6 * k] - a21;
+    }
+  }
+
+  /*  Compute the estimated measurements */
+  for (r2 = 0; r2 < 2; r2++) {
+    y[r2] = 0.0;
+    for (k = 0; k < 6; k++) {
+      y[r2] += (double)c_A[r2 + (k << 1)] * x_est[k];
+    }
+  }
+
+  /*  of the function */
 }
 
-void *getAngleY(void *arg)
-{
-  Input_y = sca.GetAngleY();
-  return NULL;
+void *thread_function(void *arg) {
+  //get the new PID parameter from Serial.
+  while(1){
+    //check if data has been sent from Serial.
+    if(Serial.available()) {
+      read_data = Serial.read();
+      if(isDigit(read_data)) {
+        inString += (char)read_data;
+      }
+      else {
+        if(inString != "") {
+          //get int value from string .
+            int_value[int_index++] = inString.toInt();
+            if(int_index >= 3)
+            {  
+              int_index = 0;
+              //Serial.println("..."); //for debug.
+              Serial.println(int_value[0]);
+              Serial.println(int_value[1]);
+              Serial.println(int_value[2]);
+              //Serial.println("...");  //for debug.
+              change_PID = true;
+            }
+            inString = "";
+        }
+      }
+    }
+  }
 }
-
-void *setpwm1(void *arg)
-{
-  M1_UP;
-  M1_SPEED(Output_y);
-  return NULL;
-}
-
-void *setpwm2(void *arg)
-{
-  M2_UP;
-  M2_SPEED(Output_y);
-  return NULL;
-}
-
-void *setpwm3(void *arg)
-{
-  M3_UP;
-  M3_SPEED(Output_y);
-  return NULL;
-}
-
-
