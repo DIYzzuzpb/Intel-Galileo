@@ -34,8 +34,8 @@
  * Connect:
  * 
  * SCA60C:
- * Vo1 - Galileo Analog Input A0    --  green   wire 
- * Vo2 - Galileo Analog Input A1    --  blue    wire 
+ * Vo1 - Galileo Analog Input A1    --  green   wire 
+ * Vo2 - Galileo Analog Input A0    --  blue    wire 
  * VCC - Galileo 5V                 --  red     wire
  * GND - Galileo GND                --  brown   wire
  *
@@ -64,7 +64,7 @@
 #define KALMANFILTER   //open kalman filter.
 
 #include "Wire.h"
-#include <PID_v1.h>
+#include <PID_v2.h>
 #include <SCA60C.h>
 
 /***** timer *****/
@@ -74,7 +74,7 @@ int time_start = 0, time_end = 0;
 
 /***** SCA60C module in <SCA60C.h> *****/
 //Vo1 -> A0, Vo2 -> A1
-SCA60C sca(A0, A1, 2.22, 2.34); // set the output offset voltage when horizontal. 
+SCA60C sca(A1, A0, 2.22, 2.34); // set the output offset voltage when horizontal. 
 double angle_x = 0;
 double angle_y = 0;
 
@@ -87,6 +87,7 @@ int pwm3 = 6;
 int dir1 = 2;
 int dir2 = 4;
 int dir3 = 7;
+
 //need set pinMode OUTPUT first!
 //digitalWrite() cost 2~3 ms each time.
 #define M1_UP    (digitalWrite(dir1, LOW))  
@@ -104,16 +105,14 @@ int dir3 = 7;
 int counter = 0;
 
 /***** PID controller *****/
-//(Input range = +-20, Output range = +- 250, Kp = 12.50)
-//(if Kp = 25, range will equals +- 10).
-double KP_x = 30, KI_x = 0, KD_x = 3;
-double KP_y = 30, KI_y = 0, KD_y = 3;
+double KP_x = 80, KI_x = 10, KD_x = 1;
+double KP_y = 80, KI_y = 10, KD_y = 1;
 //Define Variables we'll be connecting to
 double Setpoint_x = 0, Input_x = 0, Output_x = 0;
 double Setpoint_y = 0, Input_y = 0, Output_y = 0;
 //PID output Limit, ±100;    Stable range = ±3.
-double OutMinLimit_x = -100 * KP_x, OutMaxLimit_x = 100 * KP_x, OutputRange_x = 0.1 * KP_x;
-double OutMinLimit_y = -100 * KP_y, OutMaxLimit_y = 100 * KP_y, OutputRange_y = 0.1 * KP_y;
+double OutMinLimit_x = -250, OutMaxLimit_x = 250, OutputRange_x = 10;
+double OutMinLimit_y = -250, OutMaxLimit_y = 250, OutputRange_y = 10;
 double last_angle = 0;
 //Specify the links and initial tuning parameters
 PID myPID_x(&Input_x, &Output_x, &Setpoint_x, KP_x, KI_x ,KD_x , DIRECT);
@@ -144,11 +143,20 @@ int int_index = 0;
 boolean change_PID = false;  // the flag of change PID parameter.
 
 //button - A4
-
-int pin_led = 13;
+pthread_t mythread2;
 int pin_key = A4;
 int key_value = 0;
+boolean run_pid_flag = false;
+boolean reverse_flag = false;
 
+//select the input pin for the Infred distance sensor 
+int pin_M1 = A2;
+//int pin_M2 = A3;
+int pin_M3 = A3;
+//variable to store the value coming from the sensor.
+int sensorValue1 = 0;
+int sensorValue2 = 0;
+int sensorValue3 = 0;
 //-------------------------------------------------------------------------------//
 
 void setup() {
@@ -158,6 +166,7 @@ void setup() {
   Serial.println("Motor ready...");
 #endif
 
+  
   //begin Wire for controlling PWM by I2C.
   Wire.begin();
   setPwmI2C (pwm1, 0);  //first need 50ms~ (because of enable pwm output), and then need ~11ms
@@ -171,16 +180,16 @@ void setup() {
 
   //set an initial position for three motors.
   downall(3000);
-  upall(2200);
+  Serial.println("Motor ok now.");
 
   //PID set
   Setpoint_x = dir_state_x = 0; // set aim of X axis angle.
   Setpoint_y = dir_state_y = 0; // set aim of Y axis angle.
   //turn the PID on.
-  myPID_x.SetSampleTime(70);
+  myPID_x.SetSampleTime(80);
   myPID_x.SetOutputLimits(OutMinLimit_x, OutMaxLimit_x); //set the PID output Limits; 
   myPID_x.SetMode(AUTOMATIC);
-  myPID_y.SetSampleTime(70);
+  myPID_y.SetSampleTime(80);
   myPID_y.SetOutputLimits(OutMinLimit_y, OutMaxLimit_y); //set the PID output Limits; 
   myPID_y.SetMode(AUTOMATIC);
   //PID set over ............
@@ -193,92 +202,131 @@ void setup() {
   }
 #endif
 
+  //create a new thread to set PID parameter from Serial.
+  if(pthread_create(&mythread2, NULL, &button_function, NULL))  //return 0 when success.
+  {
+    Serial.println("Error creating thread.\n");
+  }
+
 }
 
 //-------------------------------------------------------------------------------//
 void loop() {
-  //1. read data of X,Y axis angle.
-  Input_x = sca.GetAngleX();    //need 6ms, because of analogRead();
-  Input_y = sca.GetAngleY();
-#ifdef KALMANFILTER  
-  //1.5, Kalman filter.
-  raw_data[0] = Input_x;
-  raw_data[1] = Input_y;
-  kalmanfilter(raw_data, kalman_data); 
-  Input_x = kalman_data[0];
-  Input_y = kalman_data[1];
-#endif
-  
-  /*
-  //1.5 , FANG ZHI DOU DONG.
-  if(Input_x * last_angle >= 0)
+
+  if(run_pid_flag == true)
   {
-    //2. PID, just need 1ms to calculate pid output.
-    //   return new value of (Output_x & Output_y).
+    if(reverse_flag == true) // begin pid.
+    {
+      upall(2200);
+      reverse_flag = false;
+      run_pid_flag = true;
+    }
+    
+    // ---------------> go on pid, don't need begin.  
+
+    //1. read data of X,Y axis angle.
+    Input_x = sca.GetAngleX();    //need 6ms, because of analogRead();
+    Input_y = sca.GetAngleY();
+    
+#ifdef KALMANFILTER  
+    //1.5, Kalman filter.
+    raw_data[0] = Input_x;
+    raw_data[1] = Input_y;
+    kalmanfilter(raw_data, kalman_data); 
+    Input_x = kalman_data[0];
+    Input_y = kalman_data[1];
+#endif
+
+    /*
+  //1.5 , FANG ZHI DOU DONG.
+     if(Input_x * last_angle >= 0)
+     {
+     //2. PID, just need 1ms to calculate pid output.
+     //   return new value of (Output_x & Output_y).
+     myPID_x.Compute();
+     output_changed = myPID_y.Compute();
+     }
+     else
+     {
+     output_changed = true;
+     }
+     */
+/*
+    if(abs(Input_x) > 3)
+      myPID_x.SetTunings(KP_x + 10, KI_x, KD_x);
+    else
+      myPID_x.SetTunings(KP_x, KI_x, KD_x);
+    if(abs(Input_y) > 3)
+      myPID_y.SetTunings(KP_y + 10, KI_y, KD_y);
+    else
+      myPID_y.SetTunings(KP_y, KI_y, KD_y);
+*/
+    
     myPID_x.Compute();
     output_changed = myPID_y.Compute();
-  }
-  else
-  {
-    output_changed = true;
-  }
-  */
-  
-  if(abs(Input_x) > 3)
-  {
-    myPID_x.SetTunings(KP_x + 10, KI_x, KD_x);
-  }
-  else
-  {
-    myPID_x.SetTunings(KP_x, KI_x, KD_x);
-  }
-  if(abs(Input_y) > 3)
-  {
-    myPID_y.SetTunings(KP_y + 10, KI_y, KD_y);
-  }
-  else
-  {
-    myPID_y.SetTunings(KP_y, KI_y, KD_y);
-  }
- 
-  myPID_x.Compute();
-  output_changed = myPID_y.Compute();
-  last_angle = Input_x;
+    last_angle = Input_x;
 
-  //2.5 serial output for debugging ...
+    //2.5 serial output for debugging ...
 #ifdef SERIAL_DEBUG      //need 10ms;
-  counter++;
-  if(output_changed == true)
-  {
-    Serial.print(counter);
-    Serial.print(", In:");
-    Serial.print(Input_x);
-    Serial.print("/");
-    Serial.print(Input_y);
-    Serial.print(", Out:");
-    Serial.print(Output_x);
-    Serial.print("/");
-    Serial.print(Output_y);
-  }
+    counter++;
+    if(output_changed == true)
+    {
+      Serial.print(counter);
+      Serial.print(", In:");
+      Serial.print(Input_x);
+      Serial.print("/");
+      Serial.print(Input_y);
+      Serial.print(", Out:");
+      Serial.print(Output_x);
+      Serial.print("/");
+      Serial.print(Output_y);
+    }
 #endif
 
- 
-  //3. decoupling for three motor.
-  //set dir need 2ms. set pwm need 12ms. each motor will cost (2 + 12 ms), all cost is 40ms.
-   if(output_changed == true)
-   decoupling();
+
+    //3. decoupling for three motor.
+    //set dir need 2ms. set pwm need 12ms. each motor will cost (2 + 12 ms), all cost is 40ms.
+    if(output_changed == true)
+      decoupling();
+    
+    sensorValue1 = analogRead(pin_M1);
+    if((sensorValue1 / 204.8) <= 2.25) // too low
+    {
+      upall(1000);
+    }
+    
+  }
+  else // run_pid_flag == false;
+  {
+    if(reverse_flag == true) // stop pid
+    {
+      downall(3000);
+      reverse_flag = false;
+      run_pid_flag = false;
+    }
+    else // go on wait...
+    {
+      delay(50);
+    }
+  }
+  
+  /*
+  Serial.print("run_pid_flag = ");
+  Serial.println(run_pid_flag);
+  */
+
 
 #ifdef SERIAL_DEBUG
-   if(change_PID == true)
-   {
-      change_PID = false;
-      int_index = 0;
-      KP_x = KP_y = int_value[0];
-      KI_x = KI_y = int_value[1];
-      KD_x = KD_y = int_value[2];
-      myPID_x.SetTunings(int_value[0], int_value[1], int_value[2]);
-      myPID_y.SetTunings(int_value[0], int_value[1], int_value[2]);
-   }
+  if(change_PID == true)
+  {
+    change_PID = false;
+    int_index = 0;
+    KP_x = KP_y = int_value[0];
+    KI_x = KI_y = int_value[1];
+    KD_x = KD_y = int_value[2];
+    myPID_x.SetTunings(int_value[0], int_value[1], int_value[2]);
+    myPID_y.SetTunings(int_value[0], int_value[1], int_value[2]);
+  }
 #endif
   //loop() is over.
 }
@@ -324,12 +372,12 @@ void decoupling()
     dir_state_y = STATE_STOP;
     Output_y = 10;      //a very little pwm value means a very slow speed of Motor.
     move2 = move3 = 0;
-    
+
 #ifdef SERIAL_DEBUG
     Serial.print(",M1-");
 #endif
   }
-  
+
   M1_SPEED(abs(Output_y));
 
   //X axis, Motor2 & 3;
@@ -504,22 +552,27 @@ void kalmanfilter(double z[2], double y[2])
   double A[36];
   int r1;
   double x_prd[6];
-  static const int b_A[36] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0,
-    0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1 };
+  static const int b_A[36] = { 
+    1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0,
+    0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 1   };
 
   int k;
   double p_prd[36];
   double a21;
-  static const int B[36] = { 1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0,
-    1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1 };
+  static const int B[36] = { 
+    1, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0,
+    1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 1   };
 
   double klm_gain[12];
-  static const int c_A[12] = { 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 };
+  static const int c_A[12] = { 
+    1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0   };
 
   double S[4];
-  static const int b_B[12] = { 1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0 };
+  static const int b_B[12] = { 
+    1, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0   };
 
-  static const long int R[4] = { 1000000000, 0, 0, 1000000000 };
+  static const long int R[4] = { 
+    1000000000, 0, 0, 1000000000   };
 
   double c_B[12];
   double a22;
@@ -602,7 +655,8 @@ void kalmanfilter(double z[2], double y[2])
   if (fabs(S[1]) > fabs(S[0])) {
     r1 = 1;
     r2 = 0;
-  } else {
+  } 
+  else {
     r1 = 0;
     r2 = 1;
   }
@@ -682,20 +736,49 @@ void *thread_function(void *arg) {
       else {
         if(inString != "") {
           //get int value from string .
-            int_value[int_index++] = inString.toInt();
-            if(int_index >= 3)
-            {  
-              int_index = 0;
-              //Serial.println("..."); //for debug.
-              Serial.println(int_value[0]);
-              Serial.println(int_value[1]);
-              Serial.println(int_value[2]);
-              //Serial.println("...");  //for debug.
-              change_PID = true;
-            }
-            inString = "";
+          int_value[int_index++] = inString.toInt();
+          if(int_index >= 3)
+          {  
+            int_index = 0;
+            //Serial.println("..."); //for debug.
+            Serial.println(int_value[0]);
+            Serial.println(int_value[1]);
+            Serial.println(int_value[2]);
+            //Serial.println("...");  //for debug.
+            change_PID = true;
+          }
+          inString = "";
         }
       }
     }
   }
 }
+
+void *button_function(void *arg) {
+  while(1){
+    key_value = analogRead(pin_key); //read analog input data from pin_key.
+
+    if(key_value > 1000) // if value > 1000(4.88V), it means button pushed.
+    {
+      delay(10);  //delay some time for debounces.
+      key_value = analogRead(pin_key);
+      if(key_value > 1000)
+        reverse_run_flag();
+    }
+    delay(100);
+  }
+}
+
+void reverse_run_flag() // reverse the run_pid_flag.
+{
+  if(run_pid_flag == true) //true
+  {
+    run_pid_flag = false;
+  }
+  else //false
+  {
+    run_pid_flag = true;
+  }
+  reverse_flag = true;
+}
+
