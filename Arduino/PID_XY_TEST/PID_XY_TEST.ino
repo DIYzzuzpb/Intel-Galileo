@@ -34,8 +34,8 @@
  * Connect:
  * 
  * SCA60C:
- * Vo1 - Galileo Analog Input A1    --  green   wire 
- * Vo2 - Galileo Analog Input A0    --  blue    wire 
+ * Vo1 - Galileo Analog Input A0    --  green   wire , with VCC/GND
+ * Vo2 - Galileo Analog Input A1    --  blue    wire , alone 
  * VCC - Galileo 5V                 --  red     wire
  * GND - Galileo GND                --  brown   wire
  *
@@ -74,7 +74,7 @@ int time_start = 0, time_end = 0;
 
 /***** SCA60C module in <SCA60C.h> *****/
 //Vo1 -> A0, Vo2 -> A1
-SCA60C sca(A1, A0, 2.22, 2.34); // set the output offset voltage when horizontal. 
+SCA60C sca(A0, A1, 2.22, 2.34); // set the output offset voltage when horizontal. 
 double angle_x = 0;
 double angle_y = 0;
 
@@ -298,7 +298,7 @@ void loop() {
     sensorValue1 = analogRead(pin_M1);
     if((sensorValue1 / 204.8) <= 2.35) // too low
     {
-      upall(1000);
+      //upall(1000);
     }
   }
   else // run_pid_flag == false;

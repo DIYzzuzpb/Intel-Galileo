@@ -27,8 +27,8 @@ Vo2: up-down      (y axis), UP   is Y-axis positive direction.    - blue  wire -
 
 //Vo1 -> A0
 //Vo2 -> A1
-int SCA60C_Pin_x = A1;  //
-int SCA60C_Pin_y = A0;
+int SCA60C_Pin_x = A0;  //blue wire
+int SCA60C_Pin_y = A1;  //green wire
 
 int sensorValue_x = 0;
 int sensorValue_y = 0;
@@ -132,7 +132,7 @@ void test2()
   Serial.println(" ");
 }
 
-SCA60C sca(A1, A0, voltage_offset_x, voltage_offset_y);
+SCA60C sca(A0, A1, voltage_offset_x, voltage_offset_y);
 
 void test3()
 {
